@@ -1,55 +1,52 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"net"
-	"os"
-	"regexp"
 )
+
+const version = "1.1.0"
 
 func main() {
 
-	// Get hostname
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = "Unable to get hostname"
-	}
+	allFlag := flag.Bool("a", false, "Get all IP and host information")
+	externalFlag := flag.Bool("e", false, "Get external IP")
+	filterFlag := flag.String("f", "", "Filter interface names. Regex supported (use with -i)")
+	hostnameFlag := flag.Bool("h", false, "Get hostname")
+	interfaceFlag := flag.Bool("i", false, "Get all interface IPs")
+	versionFlag := flag.Bool("v", false, "Print version")
 
-	fmt.Print(hostname, "\n\n")
+	flag.Parse()
 
-	// Get interfaces
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		fmt.Println("Unable to get interfaces")
+	if *versionFlag {
+		fmt.Println(version)
 		return
 	}
 
-	// Iterate over interfaces, if the interface is 'up', get the IPv4 address
-	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp != 0 {
+	if flag.NFlag() == 0 {
+		formatOutput("Hostname", getHostName())
+		formatOutput("Address", getMainIP())
+		return
+	}
 
-			ips, err := iface.Addrs()
-			if err != nil {
-				fmt.Println("Failed to get IP addresses for this device:", err)
-				return
-			}
+	if *allFlag {
+		formatOutput("Hostname", getHostName())
+		formatOutput("Address", getMainIP())
+		formatOutput("External IP", getExternalIP())
+		fmt.Println("\n-----------Interfaces-----------")
+		getInterfaceIPs(*filterFlag)
+		return
+	}
 
-			for _, ip := range ips {
-				ipNet, ok := ip.(*net.IPNet)
-				if ok && !ipNet.IP.IsLoopback() && ipNet.IP.To4() != nil {
+	if *hostnameFlag {
+		formatOutput("", getHostName())
+	}
 
-					re := regexp.MustCompile(`\(([^)]+)\)`)
-					matches := re.FindStringSubmatch(iface.Name)
+	if *interfaceFlag {
+		getInterfaceIPs(*filterFlag)
+	}
 
-					if len(matches) > 1 {
-						ifaceName := matches[1]
-						fmt.Printf("%-16s: %s\n", ifaceName, ipNet.IP.String())
-					} else {
-						ifaceName := iface.Name
-						fmt.Printf("%-16s: %s\n", ifaceName, ipNet.IP.String())
-					}
-				}
-			}
-		}
+	if *externalFlag {
+		formatOutput("", getExternalIP())
 	}
 }
