@@ -19,7 +19,7 @@ func formatOutput(key, value string) {
 
 func getExternalIP() string {
 
-	response, err := http.Get("https://api.ipify.org")
+	response, err := http.Get("https://checkip.amazonaws.com")
 	if err != nil {
 		return "Failed to get external IP"
 	}
@@ -30,7 +30,7 @@ func getExternalIP() string {
 		return "Failed to read response body"
 	}
 
-	return string(body)
+	return string(body[:len(body)-1])
 }
 
 func getHostName() string {
